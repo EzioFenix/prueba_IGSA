@@ -1,0 +1,26 @@
+/* src/app/tabla.css */
+
+.tabla-container {
+  margin: 20px;
+}
+
+.registro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mat-form-field {
+  width: 100%;
+}
+
+.header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+table {
+  width: 100%;
+}

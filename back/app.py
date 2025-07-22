@@ -3,8 +3,10 @@
 from flask import Flask, request, jsonify
 import pyodbc
 from config import Config
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Función para conectar a SQL Server
 def get_connection():
@@ -57,13 +59,18 @@ def get_all():
 def create():
     data = request.get_json()
 
-    # Validar campos obligatorios
-    if not data or 'titulo' not in data or 'estado' not in data:
-        return jsonify({"error": "Los campos 'titulo' y 'estado' son obligatorios"}), 400
+    # --- CORRECCIÓN #1: VALIDACIÓN MÁS ROBUSTA EN EL BACKEND ---
+    # Nunca confíes en el frontend. Valida todo aquí.
+    if not data or 'titulo' not in data or data.get('estado') is None:
+        return jsonify({"error": "Los campos 'titulo' y 'estado' son obligatorios y no pueden ser nulos"}), 400
 
     titulo = data['titulo']
-    descripcion = data.get('descripcion', None)  # Opcional
+    descripcion = data.get('descripcion')  # .get() es seguro y devuelve None si no existe.
     estado = data['estado']
+
+    # Otra capa de validación para el tipo de dato
+    if not isinstance(estado, int):
+        return jsonify({"error": "El campo 'estado' debe ser un número entero"}), 400
 
     conn = get_connection()
     if not conn:
@@ -78,16 +85,15 @@ def create():
         cursor.execute(query, (titulo, descripcion, estado))
         conn.commit()
 
-        # Obtener el ID del nuevo registro
-        cursor.execute("SELECT SCOPE_IDENTITY()")  # Obtiene el último ID insertado
-        nuevo_id = int(cursor.fetchone()[0])
+        # --- CORRECCIÓN #2: ELIMINAR LA LÍNEA QUE CAUSA EL ERROR ---
+        # Como tu frontend recarga toda la tabla después de crear, no necesitas devolver el nuevo ID.
+        # Eliminamos por completo la llamada a SCOPE_IDENTITY() que es la que falla.
 
         return jsonify({
-            "mensaje": "Registro creado exitosamente",
-            "id": nuevo_id
+            "mensaje": "Registro creado exitosamente"
         }), 201
     except Exception as e:
-        conn.rollback()  # Deshacer si hay error
+        conn.rollback()
         return jsonify({"error": f"No se pudo crear el registro: {str(e)}"}), 500
     finally:
         conn.close()
